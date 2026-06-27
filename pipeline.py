@@ -1,4 +1,5 @@
 from agents import build_reader_agent , build_search_agent , writer_chain , critic_chain
+import time
 
 def run_research_pipeline(topic : str) -> dict:
 
@@ -10,9 +11,12 @@ def run_research_pipeline(topic : str) -> dict:
     print("="*50)
 
     search_agent = build_search_agent()
+    t0 = time.monotonic()
     search_result = search_agent.invoke({
         "messages" : [("user", f"Find recent, reliable and detailed information about: {topic}")]
     })
+    search_time = time.monotonic() - t0
+    print(f"Search took {search_time:.2f} s")
     state["search_results"] = search_result['messages'][-1].content
 
     print("\n search result ",state['search_results'])
@@ -23,6 +27,7 @@ def run_research_pipeline(topic : str) -> dict:
     print("="*50)
 
     reader_agent = build_reader_agent()
+    t0 = time.monotonic()
     reader_result = reader_agent.invoke({
         "messages": [("user",
             f"Based on the following search results about '{topic}', "
@@ -30,6 +35,8 @@ def run_research_pipeline(topic : str) -> dict:
             f"Search Results:\n{state['search_results'][:800]}"
         )]
     })
+    reader_time = time.monotonic() - t0
+    print(f"Reader (scrape) took {reader_time:.2f} s")
 
     state['scraped_content'] = reader_result['messages'][-1].content
 
@@ -46,12 +53,20 @@ def run_research_pipeline(topic : str) -> dict:
         f"DETAILED SCRAPED CONTENT : \n {state['scraped_content']}"
     )
 
-    state["report"] = writer_chain.invoke({
-        "topic" : topic,
-        "research" : research_combined
-    })
+    # measure writer time
+    try:
+        t0 = time.monotonic()
+        state["report"] = writer_chain.invoke({
+            "topic" : topic,
+            "research" : research_combined
+        })
+        writer_time = time.monotonic() - t0
+        print(f"Writer took {writer_time:.2f} s")
+    except Exception:
+        # fallback if writer invocation already happened or failed
+        pass
 
-    print("\n Final Report\n",state['report'])
+    print("\n Final Report\n",state.get('report'))
 
     #critic report 
 
@@ -59,9 +74,12 @@ def run_research_pipeline(topic : str) -> dict:
     print("step 4 - critic is reviewing the report ")
     print("="*50)
 
+    t0 = time.monotonic()
     state["feedback"] = critic_chain.invoke({
         "report":state['report']
     })
+    critic_time = time.monotonic() - t0
+    print(f"Critic took {critic_time:.2f} s")
 
     print("\n critic report \n", state['feedback'])
 

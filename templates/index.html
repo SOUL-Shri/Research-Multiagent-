@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOUL Research AI — Multi-Agent Intelligence</title>
+  <meta name="description" content="AI-powered multi-agent research pipeline using Search, Reader, Writer and Critic agents to deliver deep research reports instantly." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary: #050508;
+      --bg-secondary: #0a0a12;
+      --bg-card: #0d0d18;
+      --bg-glass: rgba(255,255,255,0.03);
+      --bg-glass-hover: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.07);
+      --border-glow: rgba(120,80,255,0.3);
+      --text-primary: #f0f0ff;
+      --text-secondary: #8888aa;
+      --text-muted: #44445a;
+      --accent-purple: #7c4dff;
+      --accent-violet: #9c27ff;
+      --accent-blue: #448aff;
+      --accent-cyan: #00e5ff;
+      --accent-pink: #e040fb;
+      --accent-green: #00e676;
+      --accent-amber: #ffab40;
+      --gradient-main: linear-gradient(135deg, #7c4dff 0%, #e040fb 50%, #00e5ff 100%);
+      --gradient-card: linear-gradient(145deg, rgba(124,77,255,0.08) 0%, rgba(224,64,251,0.04) 100%);
+      --shadow-glow: 0 0 40px rgba(124,77,255,0.2), 0 0 80px rgba(224,64,251,0.1);
+      --shadow-card: 0 8px 32px rgba(0,0,0,0.5);
+      --radius: 16px;
+      --radius-sm: 8px;
+      --radius-lg: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── Animated Background ── */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.12;
+      animation: drift linear infinite;
+    }
+    .orb-1 { width: 600px; height: 600px; background: var(--accent-purple); top: -200px; left: -100px; animation-duration: 30s; }
+    .orb-2 { width: 400px; height: 400px; background: var(--accent-pink); top: 30%; right: -100px; animation-duration: 40s; animation-direction: reverse; }
+    .orb-3 { width: 500px; height: 500px; background: var(--accent-cyan); bottom: -100px; left: 30%; animation-duration: 35s; }
+    .orb-4 { width: 300px; height: 300px; background: var(--accent-blue); top: 60%; left: -50px; animation-duration: 45s; animation-direction: reverse; }
+
+    @keyframes drift {
+      0%   { transform: translate(0, 0) rotate(0deg); }
+      33%  { transform: translate(60px, -80px) rotate(120deg); }
+      66%  { transform: translate(-40px, 60px) rotate(240deg); }
+      100% { transform: translate(0, 0) rotate(360deg); }
+    }
+
+    /* Grid lines */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ── Layout ── */
+    .app-wrapper {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header / Nav ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(5,5,8,0.85);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: var(--gradient-main);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(124,77,255,0.5);
+      animation: pulse-logo 3s ease-in-out infinite;
+    }
+    @keyframes pulse-logo {
+      0%, 100% { box-shadow: 0 0 20px rgba(124,77,255,0.5); }
+      50%       { box-shadow: 0 0 40px rgba(224,64,251,0.7); }
+    }
+    .logo-text { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text span { background: var(--gradient-main); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    nav { display: flex; gap: 8px; }
+    .nav-pill {
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .nav-pill:hover, .nav-pill.active {
+      color: var(--text-primary);
+      background: var(--bg-glass-hover);
+      border-color: var(--border);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      background: rgba(0,230,118,0.08);
+      border: 1px solid rgba(0,230,118,0.2);
+      font-size: 0.8rem;
+      color: var(--accent-green);
+      font-weight: 500;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* ── Hero Section ── */
+    .hero {
+      text-align: center;
+      padding: 80px 40px 60px;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 100px;
+      background: rgba(124,77,255,0.1);
+      border: 1px solid rgba(124,77,255,0.3);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent-purple);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 20px;
+    }
+    .hero h1 .gradient-text {
+      background: var(--gradient-main);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 48px;
+      line-height: 1.7;
+    }
+
+    /* ── Search Box ── */
+    .search-container {
+      max-width: 780px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 6px 6px 6px 24px;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+    }
+    .search-box::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: var(--radius-lg);
+      background: var(--gradient-main);
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s ease;
+    }
+    .search-box:focus-within {
+      border-color: transparent;
+      box-shadow: var(--shadow-glow), var(--shadow-card);
+    }
+    .search-box:focus-within::before { opacity: 1; }
+
+    .search-icon {
+      font-size: 1.2rem;
+      margin-right: 4px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    #topic-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-size: 1.05rem;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      padding: 14px 12px;
+    }
+    #topic-input::placeholder { color: var(--text-muted); }
+
+    .search-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: var(--radius);
+      background: var(--gradient-main);
+      border: none;
+      color: white;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .search-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+    .search-btn:active { transform: scale(0.98); }
+    .search-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .search-hints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    .hint-chip {
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: var(--bg-glass);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .hint-chip:hover {
+      background: var(--bg-glass-hover);
+      color: var(--text-primary);
+      border-color: rgba(124,77,255,0.4);
+    }
+
+    /* ── Agent Pipeline Display ── */
+    .pipeline-section {
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* Agents Row */
+    .agents-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .agent-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s ease;
+    }
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gradient-card);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .agent-card.active {
+      border-color: var(--border-glow);
+      box-shadow: 0 0 30px rgba(124,77,255,0.3);
+    }
+    .agent-card.active::before { opacity: 1; }
+    .agent-card.done {
+      border-color: rgba(0,230,118,0.3);
+    }
+
+    .agent-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      display: block;
+      position: relative;
+      z-index: 1;
+    }
+    .agent-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+    .agent-desc {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      position: relative;
+      z-index: 1;
+    }
+    .agent-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 10px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s ease;
+    }
+    .agent-card.active .agent-status {
+      background: rgba(124,77,255,0.2);
+      color: var(--accent-purple);
+    }
+    .agent-card.done .agent-status {
+      background: rgba(0,230,118,0.15);
+      color: var(--accent-green);
+    }
+
+    .agent-spinner {
+      width: 10px; height: 10px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      display: none;
+    }
+    .agent-card.active .agent-spinner { display: inline-block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Connector lines between agents */
+    .agents-connector {
+      position: absolute;
+      top: 50%;
+      right: -8px;
+      width: 16px;
+      height: 2px;
+      background: var(--border);
+      z-index: 2;
+    }
+
+    /* Progress bar */
+    .progress-bar-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      display: none;
+    }
+    .progress-bar-container.visible { display: block; }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .progress-text { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+    .progress-pct { font-size: 0.85rem; color: var(--accent-purple); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .progress-track {
+      height: 6px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--gradient-main);
+      border-radius: 100px;
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+      width: 0%;
+      position: relative;
+      overflow: hidden;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 1.5s linear infinite;
+    }
+    @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+    /* Log stream */
+    .log-stream {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-top: 12px;
+      max-height: 80px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent-green);
+      display: none;
+    }
+    .log-stream.visible { display: block; }
+    .log-line { opacity: 0.7; }
+    .log-line.latest { opacity: 1; color: var(--accent-cyan); }
+
+    /* ── Results Section ── */
+    .results-section {
+      display: none;
+      padding: 0 40px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      animation: fadeInUp 0.6s ease;
+    }
+    .results-section.visible { display: block; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tabs */
+    .results-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: calc(var(--radius) - 4px);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .tab-btn:hover { color: var(--text-primary); background: var(--bg-glass-hover); }
+    .tab-btn.active {
+      background: var(--gradient-main);
+      color: white;
+      box-shadow: 0 4px 16px rgba(124,77,255,0.4);
+    }
+
+    /* Tab content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Report Card */
+    .result-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .result-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--gradient-main);
+    }
+
+    .result-card h2 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 24px;
+      letter-spacing: -0.5px;
+    }
+
+    .report-body {
+      line-height: 1.9;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+    .report-body strong, .report-body b { color: var(--text-primary); font-weight: 700; }
+    .report-body h1, .report-body h2, .report-body h3 {
+      color: var(--text-primary);
+      font-weight: 700;
+      margin: 20px 0 10px;
+    }
+    .report-body h1 { font-size: 1.5rem; }
+    .report-body h2 { font-size: 1.2rem; background: var(--gradient-main); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .report-body h3 { font-size: 1rem; color: var(--accent-cyan); }
+    .report-body p { margin-bottom: 14px; }
+    .report-body ul, .report-body ol { padding-left: 24px; margin-bottom: 14px; }
+    .report-body li { margin-bottom: 8px; }
+    .report-body a { color: var(--accent-cyan); text-decoration: none; }
+    .report-body a:hover { text-decoration: underline; }
+    .report-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .report-body blockquote {
+      border-left: 3px solid var(--accent-purple);
+      padding-left: 16px;
+      margin: 16px 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Score widget */
+    .score-widget {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      background: rgba(124,77,255,0.08);
+      border: 1px solid rgba(124,77,255,0.2);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .score-circle {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: conic-gradient(var(--accent-purple) 0%, var(--accent-pink) 60%, transparent 60%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .score-circle::before {
+      content: '';
+      position: absolute;
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--bg-card);
+    }
+    .score-number {
+      position: relative;
+      z-index: 1;
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .score-label { font-size: 0.8rem; color: var(--text-secondary); }
+    .score-verdict { font-size: 1rem; font-weight: 600; color: var(--text-primary); line-height: 1.4; }
+
+    /* Raw data view */
+    .raw-data {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent-green);
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.7;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .raw-data::-webkit-scrollbar { width: 6px; }
+    .raw-data::-webkit-scrollbar-track { background: transparent; }
+    .raw-data::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Action buttons */
+    .action-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-glass);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .action-btn:hover {
+      background: var(--bg-glass-hover);
+      color: var(--text-primary);
+      border-color: rgba(124,77,255,0.4);
+    }
+    .action-btn.primary {
+      background: var(--gradient-main);
+      border: none;
+      color: white;
+    }
+    .action-btn.primary:hover { filter: brightness(1.1); }
+
+    /* ── Stats Row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--gradient-main);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    footer span { color: var(--accent-purple); }
+
+    /* ── Error toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      background: rgba(220,50,50,0.9);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      max-width: 380px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      header { padding: 16px 20px; }
+      nav { display: none; }
+      .hero { padding: 50px 20px 40px; }
+      .pipeline-section, .results-section { padding: 20px; }
+      .agents-row { grid-template-columns: repeat(2, 1fr); }
+      .stats-row { grid-template-columns: repeat(1, 1fr); }
+      .results-tabs { flex-direction: column; }
+      .hero h1 { letter-spacing: -1px; }
+    }
+
+    /* Particle animation */
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      border-radius: 50%;
+      animation: float-up linear forwards;
+      z-index: 0;
+    }
+    @keyframes float-up {
+      0%   { opacity: 0.6; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-200px) scale(0); }
+    }
+
+    /* Loading skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-glass) 25%, var(--bg-glass-hover) 50%, var(--bg-glass) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-load 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes skeleton-load { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  </style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+</div>
+<div class="bg-grid"></div>
+
+<div class="app-wrapper">
+
+  <!-- Header -->
+  <header>
+    <a class="logo" href="#">
+      <div class="logo-icon">🧠</div>
+      <div class="logo-text"><span></span> Research AI </div>
+    </a>
+    <nav>
+      <a href="#" class="nav-pill active">Research</a>
+      <a href="#pipeline" class="nav-pill">Pipeline</a>
+      <a href="#results" class="nav-pill">Results</a>
+    </nav>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      Agents Online
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">
+      ✦ Powered by Gemini 2.5 Flash + Tavily
+    </div>
+    <h1>
+      Multi-Agent<br/>
+      <span class="gradient-text">Research Intelligence</span>
+    </h1>
+    <p class="hero-sub">
+      A four-agent AI pipeline — Search, Read, Write, and Critique — working in concert to deliver deep, professional research reports on any topic.
+    </p>
+
+    <div class="search-container">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="topic-input"
+          placeholder="Enter any research topic..."
+          autocomplete="off"
+        />
+        <button class="search-btn" id="research-btn" onclick="startResearch()">
+          <span id="btn-icon">⚡</span>
+          <span id="btn-text">Research Now</span>
+        </button>
+      </div>
+      <div class="search-hints">
+        <div class="hint-chip" onclick="setTopic('Artificial Intelligence in Healthcare 2025')">🏥 AI in Healthcare</div>
+        <div class="hint-chip" onclick="setTopic('Quantum Computing breakthroughs')">⚛️ Quantum Computing</div>
+        <div class="hint-chip" onclick="setTopic('Climate Change latest research')">🌍 Climate Change</div>
+        <div class="hint-chip" onclick="setTopic('Large Language Models architecture')">🤖 LLM Architecture</div>
+        <div class="hint-chip" onclick="setTopic('Space exploration 2025')">🚀 Space Exploration</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pipeline Section -->
+  <section class="pipeline-section" id="pipeline">
+
+    <!-- Agents -->
+    <div class="section-header">
+      <span style="font-size:1.2rem">🤖</span>
+      <span class="section-title">Agent Pipeline</span>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="agents-row">
+      <div class="agent-card" id="agent-1">
+        <span class="agent-icon">🔎</span>
+        <div class="agent-name">Search Agent</div>
+        <div class="agent-desc">Queries Tavily to find recent, reliable web resources</div>
+        <div class="agent-status">
+          <div class="agent-spinner"></div>
+          <span class="agent-status-text">Idle</span>
+        </div>
+      </div>
+      <div class="agent-card" id="agent-2">
+        <span class="agent-icon">📖</span>
+        <div class="agent-name">Reader Agent</div>
+        <div class="agent-desc">Scrapes top URLs for in-depth content extraction</div>
+        <div class="agent-status">
+          <div class="agent-spinner"></div>
+          <span class="agent-status-text">Idle</span>
+        </div>
+      </div>
+      <div class="agent-card" id="agent-3">
+        <span class="agent-icon">✍️</span>
+        <div class="agent-name">Writer Chain</div>
+        <div class="agent-desc">Synthesizes research into a structured report</div>
+        <div class="agent-status">
+          <div class="agent-spinner"></div>
+          <span class="agent-status-text">Idle</span>
+        </div>
+      </div>
+      <div class="agent-card" id="agent-4">
+        <span class="agent-icon">🧐</span>
+        <div class="agent-name">Critic Chain</div>
+        <div class="agent-desc">Reviews, scores and provides constructive feedback</div>
+        <div class="agent-status">
+          <div class="agent-spinner"></div>
+          <span class="agent-status-text">Idle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-bar-container" id="progress-container">
+      <div class="progress-label">
+        <span class="progress-text" id="progress-text">Initializing pipeline...</span>
+        <span class="progress-pct" id="progress-pct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="log-stream" id="log-stream">
+        <div class="log-line latest" id="log-latest">Waiting for agents...</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Results -->
+  <section class="results-section" id="results">
+
+    <div class="section-header">
+      <span style="font-size:1.2rem">📊</span>
+      <span class="section-title">Research Results</span>
+      <div class="section-line"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-score">—</div>
+        <div class="stat-label">Critic Score</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-words">—</div>
+        <div class="stat-label">Report Words</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-sources">—</div>
+        <div class="stat-label">Sources Found</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="results-tabs">
+      <button class="tab-btn active" onclick="switchTab('report')" id="tab-report">📝 Report</button>
+      <button class="tab-btn" onclick="switchTab('feedback')" id="tab-feedback">🧐 Critic Review</button>
+      <button class="tab-btn" onclick="switchTab('search')" id="tab-search">🔎 Search Data</button>
+      <button class="tab-btn" onclick="switchTab('scraped')" id="tab-scraped">📄 Scraped Content</button>
+    </div>
+
+    <!-- Report Tab -->
+    <div class="tab-content active" id="content-report">
+      <div class="result-card">
+        <div class="report-body" id="report-body">Loading report...</div>
+        <div class="action-row">
+          <button class="action-btn primary" onclick="copyReport()">📋 Copy Report</button>
+          <button class="action-btn" onclick="downloadReport()">⬇️ Download .txt</button>
+          <button class="action-btn" onclick="newResearch()">🔄 New Research</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback Tab -->
+    <div class="tab-content" id="content-feedback">
+      <div class="result-card">
+        <div class="score-widget" id="score-widget">
+          <div class="score-circle">
+            <div class="score-number" id="score-display">?/10</div>
+          </div>
+          <div>
+            <div class="score-verdict" id="verdict-display">Analyzing report quality...</div>
+            <div class="score-label" style="margin-top:6px">AI Critic Verdict</div>
+          </div>
+        </div>
+        <div class="report-body" id="feedback-body">Loading feedback...</div>
+      </div>
+    </div>
+
+    <!-- Search Tab -->
+    <div class="tab-content" id="content-search">
+      <div class="result-card">
+        <h2 style="font-size:1.2rem;margin-bottom:16px">🔎 Raw Search Results</h2>
+        <div class="raw-data" id="search-body"></div>
+      </div>
+    </div>
+
+    <!-- Scraped Tab -->
+    <div class="tab-content" id="content-scraped">
+      <div class="result-card">
+        <h2 style="font-size:1.2rem;margin-bottom:16px">📄 Scraped Web Content</h2>
+        <div class="raw-data" id="scraped-body"></div>
+      </div>
+    </div>
+
+  </section>
+
+  
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ──
+  let currentReport = '';
+  let currentTopic = '';
+  let researchStartTime = null;
+
+  // ── Helpers ──
+  function setTopic(text) {
+    document.getElementById('topic-input').value = text;
+    document.getElementById('topic-input').focus();
+  }
+
+  function showToast(msg, isError = true) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = isError ? 'rgba(220,50,50,0.9)' : 'rgba(0,200,100,0.9)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('content-' + name).classList.add('active');
+  }
+
+  function setAgentState(num, state) { // state: 'idle'|'active'|'done'
+    const card = document.getElementById('agent-' + num);
+    card.classList.remove('active', 'done');
+    const statusText = card.querySelector('.agent-status-text');
+    if (state === 'active') {
+      card.classList.add('active');
+      statusText.textContent = 'Working...';
+    } else if (state === 'done') {
+      card.classList.add('done');
+      statusText.textContent = '✓ Done';
+    } else {
+      statusText.textContent = 'Idle';
+    }
+  }
+
+  function setProgress(pct, text) {
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-text').textContent = text;
+  }
+
+  function appendLog(text) {
+    const el = document.getElementById('log-latest');
+    el.textContent = '> ' + text.substring(0, 120);
+  }
+
+  function resetAgents() {
+    [1,2,3,4].forEach(n => setAgentState(n, 'idle'));
+  }
+
+  // ── Markdown renderer (simple) ──
+  function renderMarkdown(text) {
+    return text
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:0.9em;">$1</code>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      .replace(/^---+$/gm, '<hr/>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(?!<[hlu]|<\/[hlu]|<li|<hr)(.+)$/gm, '<p>$1</p>')
+      .replace(/<p><\/p>/g, '');
+  }
+
+  // ── Parse score from feedback ──
+  function parseScore(feedback) {
+    const match = feedback.match(/Score:\s*(\d+(?:\.\d+)?)\/10/i);
+    return match ? parseFloat(match[1]) : null;
+  }
+
+  function parseVerdict(feedback) {
+    const match = feedback.match(/One line verdict:\s*(.+)/i);
+    return match ? match[1].trim() : 'See full review below';
+  }
+
+  function countWords(text) {
+    return text.split(/\s+/).filter(Boolean).length;
+  }
+
+  function countSources(searchResults) {
+    if (!searchResults || typeof searchResults !== 'string') return 0;
+    const matches = searchResults.match(/URL:/gi);
+    return matches ? matches.length : 0;
+  }
+
+  // ── Particle burst ──
+  function burst(x, y, n=12) {
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const colors = ['#7c4dff','#e040fb','#00e5ff','#448aff','#00e676'];
+      const size = Math.random() * 6 + 3;
+      p.style.cssText = `
+        width:${size}px;height:${size}px;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        left:${x + (Math.random()-0.5)*80}px;
+        top:${y + (Math.random()-0.5)*80}px;
+        animation-duration:${Math.random()*1+0.5}s;
+      `;
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1500);
+    }
+  }
+
+  // ── Main research function ──
+  async function startResearch() {
+    const topic = document.getElementById('topic-input').value.trim();
+    if (!topic) { showToast('Please enter a research topic!'); return; }
+
+    currentTopic = topic;
+    researchStartTime = Date.now();
+
+    // Reset UI
+    resetAgents();
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('progress-container').classList.add('visible');
+    document.getElementById('log-stream').classList.add('visible');
+    setProgress(5, 'Initializing multi-agent pipeline...');
+    setAgentState(1, 'active');
+
+    // Disable btn
+    const btn = document.getElementById('research-btn');
+    btn.disabled = true;
+    document.getElementById('btn-text').textContent = 'Researching...';
+    document.getElementById('btn-icon').textContent = '⏳';
+
+    // Actually POST via fetch + SSE trick
+    // We'll use fetch with streaming
+    try {
+      const response = await fetch('/api/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Server error');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      let step = 0;
+      const stepPcts = [10, 35, 60, 85, 100];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+
+          let msg;
+          try { msg = JSON.parse(raw); } catch { continue; }
+
+          if (msg.type === 'step') {
+            const s = msg.data.step;
+            setAgentState(s, 'active');
+            if (s > 1) setAgentState(s-1, 'done');
+            step = s;
+            setProgress(stepPcts[s-1], msg.data.message);
+            appendLog(msg.data.message);
+
+          } else if (msg.type === 'log') {
+            appendLog(msg.data);
+            // try to detect steps from logs
+            const lower = msg.data.toLowerCase();
+            if (lower.includes('step 1') || lower.includes('search agent')) {
+              setAgentState(1, 'active');
+              setProgress(15, 'Search Agent: Scanning the web...');
+              appendLog('Search Agent is working...');
+            } else if (lower.includes('step 2') || lower.includes('reader agent')) {
+              setAgentState(1, 'done');
+              setAgentState(2, 'active');
+              setProgress(35, 'Reader Agent: Scraping top resources...');
+            } else if (lower.includes('step 3') || lower.includes('writer')) {
+              setAgentState(2, 'done');
+              setAgentState(3, 'active');
+              setProgress(65, 'Writer: Crafting research report...');
+            } else if (lower.includes('step 4') || lower.includes('critic')) {
+              setAgentState(3, 'done');
+              setAgentState(4, 'active');
+              setProgress(85, 'Critic: Reviewing and scoring...');
+            }
+
+          } else if (msg.type === 'result') {
+            // All done!
+            [1,2,3,4].forEach(n => setAgentState(n, 'done'));
+            setProgress(100, '✅ Research complete!');
+            appendLog('All agents completed successfully!');
+
+            const data = msg.data;
+            currentReport = data.report;
+
+            // Stats
+            const score = parseScore(data.feedback);
+            const words = countWords(data.report);
+            const sources = countSources(data.search_results);
+
+            document.getElementById('stat-score').textContent = score !== null ? score + '/10' : 'N/A';
+            document.getElementById('stat-words').textContent = words.toLocaleString();
+            document.getElementById('stat-sources').textContent = sources;
+
+            // Report
+            document.getElementById('report-body').innerHTML = renderMarkdown(data.report);
+
+            // Feedback
+            document.getElementById('feedback-body').innerHTML = renderMarkdown(data.feedback);
+            if (score !== null) {
+              const pct = score / 10 * 100;
+              document.getElementById('score-display').textContent = score + '/10';
+              document.getElementById('score-widget').querySelector('.score-circle').style.background =
+                `conic-gradient(var(--accent-purple) 0%, var(--accent-pink) ${pct}%, rgba(255,255,255,0.05) ${pct}%)`;
+            }
+            document.getElementById('verdict-display').textContent = parseVerdict(data.feedback);
+
+            // Raw data
+            document.getElementById('search-body').textContent = data.search_results;
+            document.getElementById('scraped-body').textContent = data.scraped_content;
+
+            // Show results
+            setTimeout(() => {
+              document.getElementById('results').classList.add('visible');
+              document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+              // Particle burst at top of results
+              const rect = document.getElementById('results').getBoundingClientRect();
+              burst(window.innerWidth / 2, rect.top, 20);
+            }, 500);
+
+            showToast('✅ Research complete!', false);
+
+          } else if (msg.type === 'error') {
+            showToast('Error: ' + msg.data);
+            resetBtn();
+          }
+        }
+      }
+
+    } catch (err) {
+      showToast('Connection error: ' + err.message);
+      console.error(err);
+    } finally {
+      resetBtn();
+    }
+  }
+
+  function resetBtn() {
+    const btn = document.getElementById('research-btn');
+    btn.disabled = false;
+    document.getElementById('btn-text').textContent = 'Research Now';
+    document.getElementById('btn-icon').textContent = '⚡';
+  }
+
+  function newResearch() {
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('progress-container').classList.remove('visible');
+    document.getElementById('log-stream').classList.remove('visible');
+    resetAgents();
+    setProgress(0, '');
+    document.getElementById('topic-input').value = '';
+    document.getElementById('topic-input').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function copyReport() {
+    navigator.clipboard.writeText(currentReport)
+      .then(() => showToast('📋 Report copied to clipboard!', false))
+      .catch(() => showToast('Failed to copy'));
+  }
+
+  function downloadReport() {
+    const blob = new Blob([currentReport], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `research-${currentTopic.replace(/\s+/g,'-').toLowerCase()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('⬇️ Report downloaded!', false);
+  }
+
+  // Enter key
+  document.getElementById('topic-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startResearch();
+  });
+
+  // Typing animation for placeholder
+  const placeholders = [
+    'Try: "Quantum Computing 2025"',
+    'Try: "AI in Drug Discovery"',
+    'Try: "SpaceX Starship missions"',
+    'Try: "Climate tech innovations"',
+    'Try: "Neural interfaces research"',
+  ];
+  let phIdx = 0;
+  setInterval(() => {
+    phIdx = (phIdx + 1) % placeholders.length;
+    document.getElementById('topic-input').placeholder = placeholders[phIdx];
+  }, 3000);
+</script>
+
+</body>
+</html>

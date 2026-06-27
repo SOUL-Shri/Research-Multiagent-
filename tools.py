@@ -12,7 +12,7 @@ tavily=TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 @tool
 def web_search(query: str) -> str:
     """Search the recent and reliable information on a topic . Returns Titles URL and snnipet. """
-    results=tavily.search(query=query,max_result=6)
+    results=tavily.search(query=query,max_result=3)
     
     out=[]
     for r in results['results']:
@@ -27,7 +27,7 @@ def web_search(query: str) -> str:
 def scrape_url(url: str) -> str:
     """Scrape the content of a URL and return the text whcih is clean and better for deep learning model. """
     try:
-        resp = requests.get(url,timeout = 8 , headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'})
+        resp = requests.get(url,timeout = 5 , headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'})
         resp.raise_for_status()  # Check if the request was successful
         soup = BeautifulSoup(resp.text, 'html.parser')
         for tag in soup(['script', 'style','nav','header','footer','aside']):  # Add more tags to remove if needed
@@ -35,5 +35,4 @@ def scrape_url(url: str) -> str:
         return soup.get_text(separator=" ", strip=True)[:3000]
     except requests.RequestException as e:
         return f"An error occurred while trying to scrape the URL: {str(e)}"
-print(scrape_url.invoke("https://www.goldentriangletour.com/en/p-13-most-haunted-places-in-pune.php"))
     

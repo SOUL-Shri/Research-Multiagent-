@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: soul-research-ai
+    env: python
+    buildCommand: pip install -r requirement.txt
+    startCommand: gunicorn --workers 1 --threads 4 --timeout 120 app:app
+    envVars:
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: google_api_key
+        sync: false

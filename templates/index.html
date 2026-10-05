@@ -1145,18 +1145,26 @@
     document.getElementById('btn-text').textContent = 'Researching...';
     document.getElementById('btn-icon').textContent = '⏳';
 
-    // Actually POST via fetch + SSE trick
-    // We'll use fetch with streaming
+    // Determine API Base URL (handles file:// protocol and cross-origin dev servers)
+    const apiBase = (window.location.protocol.startsWith('http') && (window.location.port === '5000' || window.location.port === '')) ? '' : 'http://127.0.0.1:5000';
+
     try {
-      const response = await fetch('/api/research', {
+      const response = await fetch(`${apiBase}/api/research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic })
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Server error');
+        const responseText = (await response.text()).trim();
+        let errorMessage = responseText;
+        try {
+          const errorData = JSON.parse(responseText);
+          if (typeof errorData.error === 'string') errorMessage = errorData.error;
+        } catch {}
+        throw new Error(
+          `HTTP ${response.status} ${response.statusText}${errorMessage ? `: ${errorMessage}` : ''}`
+        );
       }
 
       const reader = response.body.getReader();

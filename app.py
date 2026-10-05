@@ -1,9 +1,14 @@
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
-from agents import build_reader_agent, build_search_agent, writer_chain, critic_chain
+from agents import build_reader_agent, build_search_agent, writer_chain, critic_chain, extract_text_from_message
 import json
 import threading
 import queue
+import traceback
 
 app = Flask(__name__)
 CORS(app)
@@ -30,13 +35,13 @@ def research():
                 # ── Step 1: Search Agent ──────────────────────────────
                 q.put(('step', {
                     'step': 1,
-                    'message': 'Search Agent: Scanning the web for relevant sources...'
+                    'message': f'Search Agent: Scanning the web for "{topic}"...'
                 }))
                 search_agent = build_search_agent()
                 search_result = search_agent.invoke({
                     "messages": [("user", f"Find recent, reliable and detailed information about: {topic}")]
                 })
-                state["search_results"] = search_result['messages'][-1].content
+                state["search_results"] = extract_text_from_message(search_result['messages'][-1])
 
                 # ── Step 2: Reader Agent ──────────────────────────────
                 q.put(('step', {
@@ -48,10 +53,10 @@ def research():
                     "messages": [("user",
                         f"Based on the following search results about '{topic}', "
                         f"pick the most relevant URL and scrape it for deeper content.\n\n"
-                        f"Search Results:\n{state['search_results'][:800]}"
+                        f"Search Results:\n{state['search_results'][:3000]}"
                     )]
                 })
-                state['scraped_content'] = reader_result['messages'][-1].content
+                state['scraped_content'] = extract_text_from_message(reader_result['messages'][-1])
 
                 # ── Step 3: Writer Chain ──────────────────────────────
                 q.put(('step', {
@@ -59,35 +64,36 @@ def research():
                     'message': 'Writer: Crafting a professional research report...'
                 }))
                 research_combined = (
-                    f"SEARCH RESULTS : \n {state['search_results']} \n\n"
-                    f"DETAILED SCRAPED CONTENT : \n {state['scraped_content']}"
+                    f"SEARCH RESULTS:\n{state['search_results']}\n\n"
+                    f"DETAILED SCRAPED CONTENT:\n{state['scraped_content']}"
                 )
-                state["report"] = writer_chain.invoke({
+                state["report"] = extract_text_from_message(writer_chain.invoke({
                     "topic": topic,
                     "research": research_combined
-                })
+                }))
 
                 # ── Step 4: Critic Chain ──────────────────────────────
                 q.put(('step', {
                     'step': 4,
                     'message': 'Critic: Reviewing and scoring the report...'
                 }))
-                state["feedback"] = critic_chain.invoke({
+                state["feedback"] = extract_text_from_message(critic_chain.invoke({
                     "report": state['report']
-                })
+                }))
 
                 q.put(('done', state))
 
             except Exception as e:
-                import traceback
-                q.put(('error', f"{str(e)}\n{traceback.format_exc()}"))
+                err_tb = traceback.format_exc()
+                print("Pipeline error:", err_tb)
+                q.put(('error', str(e)))
 
         thread = threading.Thread(target=run_pipeline, daemon=True)
         thread.start()
 
         while True:
             try:
-                item_type, item_data = q.get(timeout=180)
+                item_type, item_data = q.get(timeout=3)
 
                 if item_type == 'step':
                     yield f"data: {json.dumps({'type': 'step', 'data': item_data})}\n\n"
@@ -111,7 +117,8 @@ def research():
                     break
 
             except queue.Empty:
-                # Keep connection alive
+                if not thread.is_alive() and q.empty():
+                    break
                 yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
 
     return Response(
@@ -126,4 +133,5 @@ def research():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, threaded=True)
+    print("Starting SOUL Research AI server on http://127.0.0.1:5000")
+    app.run(debug=True, host='127.0.0.1', port=5000, threaded=True)

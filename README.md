@@ -1,6 +1,6 @@
-# MULTIAGENT
+# Research Multiagent
 
-Simple multi-agent demo project.
+A multi-agent research AI system that autonomously searches the web, extracts relevant information, generates research reports, and critiques its output. It is built with Python, Flask, LLM orchestration, and Server-Sent Events (SSE) for real-time streaming using Search, Reader, Writer, and Critic agents.
 
 **Overview**
 
@@ -74,7 +74,3 @@ If `app.py` uses a framework (Flask/FastAPI), you may also run via the framework
 
 - The dependency file is named `requirement.txt` in this repository.
 - Inspect `app.py` for framework-specific run instructions or environment variables.
-
----
-
-Created by GitHub Copilot (assistant) to summarize and document the project.
